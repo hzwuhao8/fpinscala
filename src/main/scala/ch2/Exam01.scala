@@ -11,7 +11,6 @@ object Exam01 {
   def fib2(n1: Int): Int = {
     @annotation.tailrec
     def f(n: Int, s1: Int, s2: Int): Int = n match {
-
       case 0            => s1
       case 1            => s2
       case x if (x < 0) => 0
@@ -21,9 +20,8 @@ object Exam01 {
   }
 
   def main(args: Array[String]): Unit = {
-    val s1 = (-10 to 10).map(fib).mkString(",")
-     
-    val s2 = (-10 to 10).map(fib2).mkString(",")
-    println(s"${s1}\n${s2}")
+    List(fib _, fib2 _).map { (-2 to 10).map(_).mkString(",") }.
+      foreach(println)
+
   }
 }
