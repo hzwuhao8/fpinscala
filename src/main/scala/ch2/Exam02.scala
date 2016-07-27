@@ -1,6 +1,7 @@
 package ch2
 
 object Exam02 {
+  @annotation.tailrec
   def isSorted[A](as: List[A])(ordered: (A, A) => Boolean): Boolean = {
     as match {
       case Nil          => true
@@ -10,6 +11,7 @@ object Exam02 {
     }
   }
 
+  @annotation.tailrec
   def isSorted[A](as: Array[A])(ordered: (A, A) => Boolean): Boolean = {
     as match {
       case Array()       => true
