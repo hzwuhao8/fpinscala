@@ -1,6 +1,6 @@
 package ch2
 
-object Answer {
+object Exam01 {
   def fib(n: Int): Int = n match {
     case 0            => 0
     case 1            => 1
