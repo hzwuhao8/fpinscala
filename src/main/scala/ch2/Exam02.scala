@@ -29,5 +29,7 @@ object Exam02 {
     println(r2)
     println(isSorted(Nil)(o))
     println(isSorted(Array(1, 2, 3, 10, 9))(o))
+    println(isSorted(Array(1, 2, 3, 9, 9))(o))
+    println(isSorted(Array(1, 2, 3, 9, 10))(o))
   }
 }
