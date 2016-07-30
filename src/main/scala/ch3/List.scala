@@ -55,6 +55,28 @@ object List {
     case Cons(h, Nil) => Nil
     case Cons(h, t)   => Cons(h, init(t))
   }
+
+  def foldRight[A, B](as: List[A], z: B)(f: (A, B) => B): B = {
+    as match {
+      case Nil         => z
+      case Cons(h, xs) => f(h, foldRight(xs, z)(f))
+    }
+  }
+
+  def foldLeft[A, B](as: List[A], z: B)(f: (B, A) => B): B = as match {
+    case Nil         => z
+    case Cons(h, xs) => f(foldLeft(xs, z)(f), h)
+  }
+
+  @annotation.tailrec
+  def foldLeft[A, B](as: List[A], z: B, r: B)(f: (B, A) => B): B = as match {
+    case Nil         => r
+    case Cons(h, xs) => foldLeft(xs, z, f(r, h))(f)
+  }
+
+  def sum1(l: List[Int]) = foldRight(l, 0)(_ + _)
+  def sum2(l: List[Int]) = foldLeft(l, 0)(_ + _)
+  def sum3(l: List[Int]) = foldLeft(l, 0, 0)(_ + _)
 }
 
 object Exam {
@@ -76,6 +98,12 @@ object Exam {
     println(s"${List.drop(l, 3)}")
     println(s"${List.dropWhile(l)(x => x < 3)}")
     println(s"${List.init(l)}")
+    val list = List( (1 to 10).map{ x=> scala.util.Random.nextInt(1000)}: _*)
+    println(s"list=${list}")
+    println(s"sum1(l)=${List.sum1(list)}")
+    println(s"sum2(l)=${List.sum2(list)}")
+    println(s"sum3(l)=${List.sum3(list)}")
+    
   }
 
 }
