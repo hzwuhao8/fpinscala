@@ -11,6 +11,8 @@ case class Cons[+A](head: A, t: List[A]) extends List[A] {
 }
 
 object List {
+
+  def empty[A](): List[A] = Nil
   def sum(ints: List[Int]): Int = ints match {
     case Nil         => 0
     case Cons(x, xs) => x + sum(xs)
@@ -63,20 +65,91 @@ object List {
     }
   }
 
+  @annotation.tailrec
   def foldLeft[A, B](as: List[A], z: B)(f: (B, A) => B): B = as match {
     case Nil         => z
-    case Cons(h, xs) => f(foldLeft(xs, z)(f), h)
-  }
-
-  @annotation.tailrec
-  def foldLeft[A, B](as: List[A], z: B, r: B)(f: (B, A) => B): B = as match {
-    case Nil         => r
-    case Cons(h, xs) => foldLeft(xs, z, f(r, h))(f)
+    case Cons(h, xs) => foldLeft(xs, f(z, h))(f)
   }
 
   def sum1(l: List[Int]) = foldRight(l, 0)(_ + _)
   def sum2(l: List[Int]) = foldLeft(l, 0)(_ + _)
-  def sum3(l: List[Int]) = foldLeft(l, 0, 0)(_ + _)
+
+  def mkString[A](l: List[A]): String = foldLeft(l, "")((str, a) => a.toString + "," + str)
+
+  def reverse[A](l: List[A]): List[A] = {
+    foldLeft(l, empty[A]())((ll: List[A], a: A) => Cons(a, ll))
+  }
+
+  def append1[A](a: A, l: List[A]): List[A] = {
+    reverse(Cons(a, reverse(l)))
+  }
+
+  def append2[A](a: A, l: List[A]): List[A] = {
+
+    foldLeft(reverse(l), List(a))((ll: List[A], a: A) => Cons(a, ll))
+  }
+
+  def append3[A](a: A, l: List[A]): List[A] = {
+    foldRight(l, List(a))((a: A, ll: List[A]) => Cons(a, ll))
+  }
+
+  def map1[A, B](l: List[A])(f: A => B): List[B] = {
+    val as = foldLeft(l, empty[B])((as: List[B], a: A) => Cons(f(a), as))
+    reverse(as)
+  }
+
+  def map2[A, B](l: List[A])(f: A => B): List[B] = l match {
+    case Nil          => Nil
+    case Cons(a, Nil) => Cons(f(a), Nil)
+    case Cons(a, t)   => Cons(f(a), map2(t)(f))
+  }
+
+  def filter[A](l: List[A])(f: A => Boolean): List[A] = l match {
+    case Nil        => Nil
+    case Cons(a, t) => if (f(a)) Cons(a, filter(t)(f)) else filter(t)(f)
+  }
+  def filter2[A](l: List[A])(f: A => Boolean): List[A] = {
+    val as = foldLeft(l, empty[A])((ll: List[A], a: A) => if (f(a)) Cons(a, ll) else ll)
+    reverse(as)
+  }
+
+  def foldRight2[A, B](l: List[A], z: B)(f: (A, B) => B): B = {
+    val as = reverse(l)
+    foldLeft(as, z)((b, a) => f(a, b))
+  }
+
+  def :::[A](l1: List[A], l2: List[A]): List[A] = {
+    l1 match {
+      case Nil        => l2
+      case Cons(a, t) => Cons(a, :::(t, l2))
+    }
+  }
+  def flatten[A](l1: List[List[A]]): List[A] = l1 match {
+    case Nil          => Nil
+    case Cons(a, Nil) => a
+    case Cons(a, t)   => :::(a, flatten(t))
+  }
+
+  def flatMap[A, B](l: List[A])(f: A => List[B]): List[B] = l match {
+    case Nil          => Nil
+    case Cons(a, Nil) => f(a)
+    case Cons(a, t) =>
+      val tmp = f(a)
+      val tmp2 = flatMap(t)(f)
+      :::(tmp, tmp2)
+  }
+  def filter3[A](l: List[A])(f: A => Boolean): List[A] = {
+    flatMap(l)((a) => if (f(a)) List(a) else Nil)
+  }
+
+  def zipWith[A, B, C](l1: List[A], l2: List[B])(f: (A, B) => C): List[C] = {
+    (l1, l2) match {
+      case (Nil, Nil) => Nil
+      case (_, Nil)   => Nil
+      case (Nil, _)   => Nil
+      case (Cons(a,t1), Cons(b,t2)) => Cons(f(a,b), zipWith(t1,t2)(f) )
+    }
+  }
 }
 
 object Exam {
@@ -98,12 +171,41 @@ object Exam {
     println(s"${List.drop(l, 3)}")
     println(s"${List.dropWhile(l)(x => x < 3)}")
     println(s"${List.init(l)}")
-    val list = List( (1 to 10).map{ x=> scala.util.Random.nextInt(1000)}: _*)
+    val list = List((1 to 7).map { x => scala.util.Random.nextInt(1000) }: _*)
     println(s"list=${list}")
     println(s"sum1(l)=${List.sum1(list)}")
     println(s"sum2(l)=${List.sum2(list)}")
-    println(s"sum3(l)=${List.sum3(list)}")
+
+    print("reverse\t")
+    println(List.reverse(list))
+    print("mkString\t")
+    println(List.mkString(list))
+    print("append1\t")
+    println(List.append1(10, list))
+    print("append2\t")
+    println(List.append2(10, list))
+    print("append3\t")
+    println(List.append3(10, list))
+    print("map1\t")
+    println(List.map1(list)(x => x))
+
+    print("map2\t")
+    println(List.map2(list)(x => x))
+    print("filter\t")
+    println(List.filter(list)(x => x > 500))
+
+    print("filter2\t")
+    println(List.filter2(list)(x => x > 500))
+
+    print("filter3 use flatMap\t")
+    println(List.filter3(list)(x => x > 500))
+
+    print("flatMap\t")
+    println(List.flatMap(list)(x => List(x, x)))
     
+    print("zipWith List(1,2,3), List(4,5,6) with + \n")
+    println(List.zipWith(List(1,2,3), List(4,5,6) ) ( (a,b) => a +b ) )
+     println(List.zipWith(List(1,2,3), List(4,5,6) ) ( (a,b) => (a,b) ) )
   }
 
 }
