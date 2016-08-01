@@ -144,10 +144,10 @@ object List {
 
   def zipWith[A, B, C](l1: List[A], l2: List[B])(f: (A, B) => C): List[C] = {
     (l1, l2) match {
-      case (Nil, Nil) => Nil
-      case (_, Nil)   => Nil
-      case (Nil, _)   => Nil
-      case (Cons(a,t1), Cons(b,t2)) => Cons(f(a,b), zipWith(t1,t2)(f) )
+      case (Nil, Nil)                 => Nil
+      case (_, Nil)                   => Nil
+      case (Nil, _)                   => Nil
+      case (Cons(a, t1), Cons(b, t2)) => Cons(f(a, b), zipWith(t1, t2)(f))
     }
   }
 }
@@ -202,10 +202,10 @@ object Exam {
 
     print("flatMap\t")
     println(List.flatMap(list)(x => List(x, x)))
-    
+
     print("zipWith List(1,2,3), List(4,5,6) with + \n")
-    println(List.zipWith(List(1,2,3), List(4,5,6) ) ( (a,b) => a +b ) )
-     println(List.zipWith(List(1,2,3), List(4,5,6) ) ( (a,b) => (a,b) ) )
+    println(List.zipWith(List(1, 2, 3), List(4, 5, 6))((a, b) => a + b))
+    println(List.zipWith(List(1, 2, 3), List(4, 5, 6))((a, b) => (a, b)))
   }
 
 }
