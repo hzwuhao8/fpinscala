@@ -41,22 +41,20 @@ object Option {
 
   def traverse[A, B](list: List[A])(f: A => Option[B]): Option[List[B]] = {
     @annotation.tailrec
-    def tt(list: List[A], flag: Boolean, res: Option[Buffer[B]])(f: A => Option[B]): Option[Buffer[B]] = {
-      flag match {
-        case true => None
-        case _ => list match {
-          case Nil => res
-          case h :: t =>
-            println(h)
-            val v = f(h)
-            v match {
-              case None    => None
-              case Some(x) => tt(t, false, Some(res.get += x))(f)
-            }
-        }
+    def tt(list: List[A], res: Option[Buffer[B]])(f: A => Option[B]): Option[Buffer[B]] = {
+      list match {
+        case Nil => res
+        case h :: t =>
+          println(h)
+          val v = f(h)
+          v match {
+            case None    => None
+            case Some(x) => tt(t, Some(res.get += x))(f)
+          }
+
       }
     }
-    val r = tt(list, false, Some(Buffer[B]()))(f)
+    val r = tt(list, Some(Buffer[B]()))(f)
     r.map(_.toList)
   }
 
@@ -64,7 +62,7 @@ object Option {
 
 object OptionT {
   def main(args: Array[String]): Unit = {
-    val t = List(Some(1), Some(2), Some(3),None,Some(4))
+    val t = List(Some(1), Some(2), Some(3), None, Some(4))
     val r = Option.sequense(t)
     println(s"r=$r")
 
