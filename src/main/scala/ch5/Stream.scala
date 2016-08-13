@@ -84,6 +84,48 @@ sealed trait Stream[+A] {
     foldRight(Nil: List[A])((h, t) => h :: t)
   }
 
+  def otherMap[B](f: A => B): Stream[B] = {
+    Stream.unfold(this) {
+      case Cons(h, t) => Some((f(h()), t()))
+      case _          => None
+    }
+  }
+
+  def otherTake(n: Int): Stream[A] = {
+    Stream.unfold((this, n)) {
+      case (Cons(h, t), 1)          => Some((h(), (Stream.empty, 0)))
+      case (Cons(h, t), n) if n > 1 => Some((h(), (t(), n - 1)))
+      case _                        => None
+    }
+  }
+
+  def otherTakeWhile(f: A => Boolean): Stream[A] = {
+    Stream.unfold(this) {
+      case (Cons(h, t)) if f(h()) => Some((h(), (t())))
+      case _                      => None
+    }
+  }
+  def zipWith[B, C](s2: Stream[B])(f: (A, B) => C): Stream[C] = {
+    Stream.unfold((this, s2)) {
+      case ((Cons(h1, t1), Cons(h2, t2))) => Some((f(h1(), h2()), (t1(), t2())))
+      case _                              => None
+    }
+  }
+
+  def zip[B](s2: Stream[B]): Stream[(A, B)] = zipWith(s2)((_, _))
+
+  def zipAll[B](s2: Stream[B]): Stream[(Option[A], Option[B])] = {
+    Stream.unfold((this, s2)) {
+      case ((Cons(h1, t1), Cons(h2, t2))) => Some(((Some(h1()), Some(h2())), (t1(), t2())))
+      case ((Cons(h1, t1), Empty))        => Some(((Some(h1()), None), (t1(), Stream.empty)))
+      case ((Empty, Cons(h2, t2)))        => Some(((None, Some(h2())), (Empty, t2())))
+      case _                              => None
+    }
+  }
+
+  def startWith[B >: A](ss: Stream[B]): Boolean = {
+    this.zipWith(ss)(_ == _).forAll { x => x }
+  }
 }
 
 case object Empty extends Stream[Nothing]
@@ -108,12 +150,7 @@ object Stream {
    * Some(a2, s) = f(s)
    * s 下一个状态
    */
-  def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream[A] = {
-    f(z) match {
-      case Some((a, s)) => Stream.cons(a, unfold(s)(f))
-      case _            => Stream.empty[A]
-    }
-  }
+
   def ones: Stream[Int] = cons(1, ones)
   def from(n: Int): Stream[Int] = cons(n, from(n + 1))
   def fibs(a: Int, b: Int): Stream[Int] = cons(a, fibs(b, a + b))
@@ -123,6 +160,13 @@ object Stream {
   def seqx[B](n: Int)(f: Int => B): Stream[B] = cons(f(n), seqx(n + 1)(f))
 
   def seq3(n: Int) = seqx(n)(x => x * x * x)
+
+  def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream[A] = {
+    f(z) match {
+      case Some((a, s)) => Stream.cons(a, unfold(s)(f))
+      case _            => Stream.empty[A]
+    }
+  }
 
   /**
    * 常数序列
@@ -147,10 +191,10 @@ object Stream {
   /**
    * 从 a(n-1) 计算得到 a(n)
    */
-  def from3b(n: Double, d: Double): Stream[Double] = unfold(n){ x =>
+  def from3b(n: Double, d: Double): Stream[Double] = unfold(n) { x =>
     val an = x + d
     val s = an
-    Some((an,s))
+    Some((an, s))
   }
   /**
    * a(n) = n * d = a(n-1) + d
@@ -173,7 +217,7 @@ object Stream {
   def from6(n: Int, d: Int): Stream[Int] = unfold(n)(x => Some(List.fill(d)(x).product, x + 1))
 
   /**
-   * 计算 a(n) 需要知道 a(n-1),a(n-2) 
+   * 计算 a(n) 需要知道 a(n-1),a(n-2)
    * 所以 参数是(Int,Int)
    */
   def fibs2(): Stream[(Int)] = unfold((0, 1)) {
@@ -222,6 +266,10 @@ object Exam {
     println(s"seq3.take(10)  ${seq3(1).take(10).toList}")
 
     println(s"sum( 1/(n*n)) .take(10)  ${seqx(1)(x => 1.toDouble / (x * x)).take(20).toList.sum / Math.PI}")
-
+    val sa1 = Stream(1,2,3)
+    val sa2 = Stream(1,2)
+    val sa3 = Stream(1,2,3,4)
+    println(s"${sa1.toList} startWith ${sa2.toList} =  ${sa1.startWith(sa2)}")
+    println(s"${sa1.toList} startWith ${sa3.toList} =  ${sa1.startWith(sa3)}")
   }
 }
