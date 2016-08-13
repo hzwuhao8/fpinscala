@@ -2,7 +2,7 @@ package ch4
 
 import scala.collection.mutable.Buffer
 
-trait Either[+E, +A] {
+sealed trait Either[+E, +A] {
   def isRight(): Boolean = this match {
     case Left(_) => false
     case _       => true

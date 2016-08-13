@@ -2,7 +2,7 @@ package ch4
 
 import scala.collection.mutable.Buffer
 
-trait Option[+A] {
+sealed trait Option[+A] {
   def map[B](f: A => B): Option[B] = this match {
     case None    => None
     case Some(a) => Some(f(a))
