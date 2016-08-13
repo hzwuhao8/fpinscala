@@ -124,8 +124,9 @@ sealed trait Stream[+A] {
   }
 
   def startWith[B >: A](ss: Stream[B]): Boolean = {
-    this.zipWith(ss)(_ == _).forAll { x => x }
+    this.zipAll(ss).takeWhile( !_._2.isEmpty).forAll(x => x._1 == x._2)
   }
+  
 }
 
 case object Empty extends Stream[Nothing]
