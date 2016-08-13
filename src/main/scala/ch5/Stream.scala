@@ -127,6 +127,12 @@ sealed trait Stream[+A] {
     this.zipAll(ss).takeWhile( !_._2.isEmpty).forAll(x => x._1 == x._2)
   }
   
+  def tails(): Stream[Stream[A]] = {
+    Stream.unfold(this){
+      case Empty => None
+      case Cons(h,t) => Some((Cons(h,t),t() ))
+    } append Stream(Stream.empty)
+  }
 }
 
 case object Empty extends Stream[Nothing]
@@ -272,5 +278,7 @@ object Exam {
     val sa3 = Stream(1,2,3,4)
     println(s"${sa1.toList} startWith ${sa2.toList} =  ${sa1.startWith(sa2)}")
     println(s"${sa1.toList} startWith ${sa3.toList} =  ${sa1.startWith(sa3)}")
+    val sb = sa3.tails()
+    sb.otherMap { x => println( x.toList) }.toList
   }
 }
