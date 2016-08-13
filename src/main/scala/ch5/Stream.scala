@@ -103,9 +103,10 @@ object Stream {
     if (as.isEmpty) empty else cons(as.head, apply(as.tail: _*))
 
   /**
-   *  z = a0
-   * Some(a1, z) = f(z)
-   * Some(a2, z) = f(z)
+   *  s = a0
+   * Some(a1, s) = f(s)
+   * Some(a2, s) = f(s)
+   * s 下一个状态
    */
   def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream[A] = {
     f(z) match {
@@ -139,8 +140,18 @@ object Stream {
    * a 是 an
    * s 是下一次计算的参数
    */
+  /**
+   * 这个 实际 每次是 从 a0 计算得到结果
+   */
   def from3a(n: Int, d: Double): Stream[Double] = unfold(n)(x => Some(n + (x * d), x + 1))
-  def from3b(n: Double, d: Double): Stream[Double] = unfold(n)(x => Some(x + d, x + d))
+  /**
+   * 从 a(n-1) 计算得到 a(n)
+   */
+  def from3b(n: Double, d: Double): Stream[Double] = unfold(n){ x =>
+    val an = x + d
+    val s = an
+    Some((an,s))
+  }
   /**
    * a(n) = n * d = a(n-1) + d
    * 0,d,1*d,2*d,3*d
@@ -161,6 +172,16 @@ object Stream {
    */
   def from6(n: Int, d: Int): Stream[Int] = unfold(n)(x => Some(List.fill(d)(x).product, x + 1))
 
+  /**
+   * 计算 a(n) 需要知道 a(n-1),a(n-2) 
+   * 所以 参数是(Int,Int)
+   */
+  def fibs2(): Stream[(Int)] = unfold((0, 1)) {
+    case (f0, f1) =>
+      val an = f0
+      val z = (f1, f0 + f1)
+      Some((an, z))
+  }
 }
 
 object Exam {
@@ -197,6 +218,7 @@ object Exam {
     println(s"n^2 from6(1, 2).take(9)  ${from6(1, 2).take(9).toList}")
 
     println(s"fibs.take(10)  ${fibs(0, 1).take(10).toList}")
+    println(s"fibs2.take(10)  ${fibs2().take(10).toList}")
     println(s"seq3.take(10)  ${seq3(1).take(10).toList}")
 
     println(s"sum( 1/(n*n)) .take(10)  ${seqx(1)(x => 1.toDouble / (x * x)).take(20).toList.sum / Math.PI}")
