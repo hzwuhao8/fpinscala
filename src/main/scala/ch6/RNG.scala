@@ -62,7 +62,7 @@ object RNG {
       val (a1, r3) = a(r2)
       (a1 :: l, r3)
     }
-    val f2 = (f: Rand[A], acc: Rand[List[A]]) => map2(f,acc)( _ :: _  )
+    val f2 = (f: Rand[A], acc: Rand[List[A]]) => map2(f, acc)(_ :: _)
     fs.foldRight(z)(f2)
 
   }
@@ -78,6 +78,32 @@ object RNG {
       case a1 :: a2 :: t => map2(a1, a2)((a1, a2) => List(a1, a2))
     }
   }
+
+  def flatMap[A, B](f: Rand[A])(g: A => Rand[B]): Rand[B] = { rng =>
+    val (a, r1) = f(rng)
+    val b = g(a)
+    b(r1)
+  }
+
+  def mapA[A, B](f: Rand[A])(g: A => B): Rand[B] = flatMap(f)(a => unit(g(a)))
+
+  def map2A[A, B, C](f1: Rand[A], f2: Rand[B])(g: (A, B) => C): Rand[C] = {
+    val g3 = (a: A) => map(f2)(g(a, _: B))
+    flatMap(f1)(g3)
+  }
+
+  def nonNegativeLessThan(n: Int): Rand[Int] = {
+    val g = (a: Int) => {
+      val mod = a % n
+      if (a + (n - 1) - mod >= 0) {
+        unit(mod)
+      } else {
+        nonNegativeLessThan(n)
+      }
+    }
+    flatMap(int)(g)
+  }
+
   def intDouble2(rng: RNG): ((Int, Double), RNG) = {
     val ra = int
     val rb = double _
@@ -157,9 +183,11 @@ object Exam {
     println(s"sequence: ${sequence(List(unit(1), unit(2), unit(3)))(rng)}")
     println(s"sequenceFoldleft: ${sequenceFoldleft(List(unit(1), unit(2), unit(3)))(rng)}")
     println(s"sequenceFoldright: ${sequenceFoldright(List(unit(1), unit(2), unit(3)))(rng)}")
-    println(s"sequenceFoldright: ${sequenceFoldright(List(int,int,int))(rng)}")
-    
+    println(s"sequenceFoldright: ${sequenceFoldright(List(int, int, int))(rng)}")
+
     println(s"intdouble=${intDouble(rng4)}")
     println(s"intdouble2=${intDouble2(rng4)}")
+
+    println(s"nonNegativeLessThan=${nonNegativeLessThan(600)(rng4)}")
   }
 }
