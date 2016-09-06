@@ -1,22 +1,43 @@
 package ch7
 
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Future
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
 
-class ExecutorService {
-  def submit[A](a: Callable[A]): Future[A]
-}
-trait Callable[A] { def call: A }
+//class ExecutorService  {
+//  def submit[A](a: Callable[A]): Future[A]
+//}
+//trait Callable[A] { def call: A }
+//
+//trait Future[A] {
+//  def get: A
+//  def get(timeout: Long, unit: TimeUnit): A
+//  def cancel(evenIfRunning: Boolean): Boolean
+//  def isDone: Boolean
+//  def isCancelled: Boolean
+//}
 
-trait Future[A] {
-  def get: A
-  def get(timeout: Long, unit: TimeUnit): A
-  def cancel(evenIfRunning: Boolean): Boolean
-  def isDone: Boolean
-  def isCancelled: Boolean
-}
+/**
+map  = (a:Par[A])(f: A => B): Par[B]
+ * 
+ * map(y)(id) = y 
+ * f= A => B
+ * y = unit(f)
+ * map(unit(f))(id) = unit((f(x))
+id(f) = f(id) 
+map(unit(f))(id) = map(unit(id))(f) 
+map(unit(id))(f)  = map(unit(x))(f)
 
- 
+map(unit(x))(f) = unit((f(x))
 
+ * 
+ *  
+ * 
+ * 
+ * 
+ */
 object Par {
   type Par[A] = ExecutorService => Future[A]
 
@@ -50,11 +71,44 @@ object Par {
       def call = a(es).get
     })
   }
+
+  def asyncF[A, B](f: A => B): A => Par[B] = {
+    a => unit(f(a))
+  }
+
+  def map[A, B](pa: Par[A])(f: A => B): Par[B] = {
+    map2(pa, unit(()))((a, _) => f(a))
+
+  }
+  def sequence[A](ps: List[Par[A]]): Par[List[A]] = {
+    ps match {
+      case Nil => unit(Nil)
+      case a :: t =>
+        val tmp: Par[List[A]] = sequence(t)
+        map2(tmp, a) { (ps2, x) => x :: ps2 }
+    }
+  }
+
+  def parFilter[A](as: List[A])(f: A => Boolean): Par[List[A]] = {
+    val f2 = (x: A) => (x, f(x))
+    val tmp = parMap(as)(f2)
+    map(tmp) { as => as.collect { case (a1, true) => a1 } }
+
+  }
+
+  def parMap[A, B](ps: List[A])(f: A => B): Par[List[B]] = {
+    val fbs: List[Par[B]] = ps.map(asyncF(f))
+    sequence(fbs)
+  }
 }
 object Exam {
 
   def main(args: Array[String]): Unit = {
-
+    val s = sum((1 to 50))
+    val es = Executors.newFixedThreadPool(10)
+    val r1 = s.apply(es)
+    val r2 = r1.get
+    println(s"r2=${r2}")
   }
 
   def sum(ints: IndexedSeq[Int]): Par.Par[Int] = {
