@@ -128,19 +128,24 @@ object MyGenX {
     choose('a'.toInt, 'z'.toInt).map(_.toChar)
   }
 
-  def atoZ(): MyGen[Char] = {
+  val atoZ : MyGen[Char] = {
     val g1 = choose('a'.toInt, 'z'.toInt).map(_.toChar)
     val g2 = choose('A'.toInt, 'Z'.toInt).map(_.toChar)
     union(g1, g2)
   }
 
-  def string(n: Int=10): MyGen[String] = {
-    choose(0, n).flatMap {
-      i => listOfN(i, atoZ).map { _.mkString }
-    }
+  val utf8 : MyGen[Char] = {
+    val g1 = choose('a'.toInt, 'z'.toInt).map(_.toChar)
+    val g2 = choose('A'.toInt, 'Z'.toInt).map(_.toChar)
+    val g3 = choose('啊'.toInt, '中'.toInt).map(_.toChar)
+    union(g3, union(g1, g2))
   }
 
-   
+  def string(n: Int = 10, gen: MyGen[Char] = utf8): MyGen[String] = {
+    choose(0, n).flatMap {
+      i => listOfN(i, gen).map { _.mkString }
+    }
+  }
 
   def unit[A](a: => A): MyGen[A] = {
     val run = (rng: RNG) => {

@@ -6,7 +6,7 @@ object ExamSGen {
   val rng = ch6.SimpleRNG(System.currentTimeMillis())
   def checkSample() = {
     val iGen = MyGenX.choose(0, 100)
-    val cGen = MyGenX.atoZ()
+    val cGen = MyGenX.atoZ
     val sGen = MyGenX.string()
     val sampleGen: MyGen[Sample] = for {
       i <- iGen
