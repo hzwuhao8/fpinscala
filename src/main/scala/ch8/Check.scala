@@ -6,13 +6,48 @@ import ch6.SimpleRNG
 import scala.collection.mutable.Buffer
 import Prop._
 
-trait Prop {
-
-  def check: Either[(FailedCase, SuccessCount), SuccessCount]
+sealed trait Result {
+  def isFalsified: Boolean
 }
+case object Passed extends Result {
+  def isFalsified = false
+}
+case class Falsified(failure: FailedCase, successes: SuccessCount)
+    extends Result {
+  def isFalsified = true
+
+}
+
+case class Prop(run: (TestCases, RNG) => Result) {
+  def &&(p: Prop): Prop = {
+    def run(a: TestCases, rng: RNG) = {
+      val r = this.run(a, rng)
+      if (r.isFalsified) {
+        r
+      } else {
+        p.run(a, rng)
+      }
+    }
+    Prop(run)
+  }
+
+  def ||(p: Prop): Prop = {
+    def run(a: TestCases, rng: RNG) = {
+      val r = this.run(a, rng)
+      if (!r.isFalsified) {
+        r
+      } else {
+        p.run(a, rng)
+      }
+    }
+    Prop(run)
+  }
+}
+
 object Prop {
   type FailedCase = String
   type SuccessCount = Int
+  type TestCases = Int
 }
 
 case class MyGen[A](sample: State[RNG, A]) {
@@ -26,6 +61,13 @@ case class MyGen[A](sample: State[RNG, A]) {
       (b, next2)
     }
     MyGen(State(run))
+  }
+
+  def map[B](f: A => B): MyGen[B] = {
+    def ff(a: A): MyGen[B] = {
+      unit(f(a))
+    }
+    flatMap(ff)
   }
 
   def listOfN(size: MyGen[Int]): MyGen[List[A]] = {
@@ -71,6 +113,7 @@ object MyGenX {
     }
     MyGen(State(run))
   }
+
   def union[A](g1: MyGen[A], g2: MyGen[A]): MyGen[A] = {
     boolean.flatMap { x => if (x) g1 else g2 }
   }
@@ -102,22 +145,35 @@ object MyGenX {
     MyGen(State(run))
   }
 
-  def forAll[A](ag: MyGen[A])(f: A => Boolean): Prop = {
-    val ff = (rng: RNG) => {
-      val (a, next) = ag.sample.run(rng)
-      val res = f(a)
-      if (res) {
-        ("", 1)
-      } else {
-        (s"$a fail", 0)
-      }
+  def forAll[A](as: MyGen[A])(f: A => Boolean): Prop = {
+
+    /**
+     * 随机 A 流
+     *
+     */
+    def randomStream[A](g: MyGen[A])(rng: RNG): ch5.Stream[A] = {
+      ch5.Stream.unfold(rng)(rng => Some(g.sample.run(rng)))
     }
 
-    val res = new Prop {
-      def check: Either[(FailedCase, SuccessCount), SuccessCount] = {
-
-      }
+    def msg[A](a: A, e: Exception): FailedCase = {
+      s"test case $a \n Exception ${e.getMessage}"
     }
-    res
+
+    def run(n: TestCases, rng: RNG): Result = {
+      val step1: ch5.Stream[Result] =
+        randomStream(as)(rng).zip(ch5.Stream.from(0)).take(n).map {
+          case (a, i) => try {
+            if (f(a))
+              Passed
+            else
+              Falsified(a.toString, i)
+
+          } catch {
+            case e: Exception => Falsified(msg(a, e), i)
+          }
+        }
+      step1.filter { x => x.isFalsified }.headOption.getOrElse(Passed)
+    }
+    Prop(run)
   }
 }
