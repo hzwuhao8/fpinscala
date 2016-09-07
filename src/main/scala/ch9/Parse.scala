@@ -63,7 +63,7 @@ trait Parsers[ParseError, Parser[+_]] { self =>
     def map[B](f: A => B) = self.map(p)(f)
     def flatMap[B](f: A => Parser[B]) = self.flatMap(p)(f)
     val numA: Parser[Int] = char('a').many.map { _.size }
-
+    def slice = self.slice(p)
   }
 
   object Laws {
