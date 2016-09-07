@@ -1,10 +1,31 @@
 package ch8
 
-object ExamSGen {
+case class Sample(i: Int, c: Char, s: String)
 
-  def main(args: Array[String]): Unit = {
-    val smallInt = MyGenX.choose(-10, 10)
-    val sGen = MyGenX.listOf(smallInt)
+object ExamSGen {
+  val rng = ch6.SimpleRNG(System.currentTimeMillis())
+  def checkSample() = {
+    val iGen = MyGenX.choose(0, 100)
+    val cGen = MyGenX.atoZ()
+    val sGen = MyGenX.string()
+    val sampleGen: MyGen[Sample] = for {
+      i <- iGen
+      c <- cGen
+      s <- sGen
+    } yield {
+      Sample(i, c, s)
+    }
+
+    val prop = MyGenX.forAll(sampleGen) { sample =>
+      println(sample)
+      sample.i < 100
+    }
+    Prop.run(prop)
+  }
+
+  def checkmax() = {
+    val smallGen = MyGenX.string()
+    val sGen = MyGenX.listOf( smallGen)
     val maxProp = MyGenX.forAll(sGen) { ns =>
       println(ns)
       if (ns.isEmpty) {
@@ -15,8 +36,19 @@ object ExamSGen {
       }
     }
 
-    val rng = ch6.SimpleRNG(System.currentTimeMillis())
-    val result = maxProp.run(10, 10, rng)
-    println(result)
+    Prop.run(maxProp)
+
+  }
+  def checkreverse() = {
+    val smallGen = MyGenX.string()
+    val reverseProp = MyGenX.forAll(smallGen) { str =>
+      println(str)
+      str.reverse.reverse == str
+    }
+    Prop.run(reverseProp)
+  }
+  def main(args: Array[String]): Unit = {
+
+    checkSample()
   }
 }

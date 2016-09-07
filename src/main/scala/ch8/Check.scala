@@ -49,6 +49,17 @@ object Prop {
   type SuccessCount = Int
   type TestCases = Int
   type MaxSize = Int
+
+  def run(p: Prop, maxSize: Int = 100,
+          testCases: Int = 100,
+          rng: RNG = ch6.SimpleRNG(System.currentTimeMillis())): Unit = {
+    p.run(maxSize, testCases, rng) match {
+      case Falsified(msg, n) =>
+        println(s"! Falsified after $n passed tests:\n $msg")
+      case Passed =>
+        println(s"+ OK, passed $testCases tests.")
+    }
+  }
 }
 
 case class SGen[+A](forSize: Int => MyGen[A])
@@ -73,6 +84,10 @@ case class MyGen[+A](sample: State[RNG, A]) {
     flatMap(ff)
   }
 
+  def foreach[B](f: A => B): Unit = {
+    map(f)
+  }
+
   def listOfN(size: MyGen[Int]): MyGen[List[A]] = {
     def ff(i: Int): MyGen[List[A]] = {
       MyGenX.listOfN(i, this)
@@ -91,7 +106,7 @@ object MyGenX {
       if (d == 0) {
         start
       } else {
-        start + i % d
+        start + (i.abs % d)
       }
     }
     val run = (rng: RNG) => {
@@ -101,6 +116,31 @@ object MyGenX {
 
     MyGen(State(run))
   }
+
+  def double: MyGen[Double] = {
+    val run = (rng: RNG) => {
+      ch6.RNG.double(rng)
+    }
+    MyGen(State(run))
+  }
+
+  def atoz(): MyGen[Char] = {
+    choose('a'.toInt, 'z'.toInt).map(_.toChar)
+  }
+
+  def atoZ(): MyGen[Char] = {
+    val g1 = choose('a'.toInt, 'z'.toInt).map(_.toChar)
+    val g2 = choose('A'.toInt, 'Z'.toInt).map(_.toChar)
+    union(g1, g2)
+  }
+
+  def string(n: Int=10): MyGen[String] = {
+    choose(0, n).flatMap {
+      i => listOfN(i, atoZ).map { _.mkString }
+    }
+  }
+
+   
 
   def unit[A](a: => A): MyGen[A] = {
     val run = (rng: RNG) => {
