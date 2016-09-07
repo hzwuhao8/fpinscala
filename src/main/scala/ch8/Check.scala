@@ -9,6 +9,9 @@ import Prop._
 sealed trait Result {
   def isFalsified: Boolean
 }
+case object Proved extends Result {
+  def isFalsified = false
+}
 case object Passed extends Result {
   def isFalsified = false
 }
@@ -50,7 +53,11 @@ object Prop {
   type TestCases = Int
   type MaxSize = Int
 
-  def run(p: Prop, maxSize: Int = 100,
+  def check(p: => Boolean): Prop = Prop {
+    (_, _, _) => if (p) Passed else Falsified("()", 0)
+  }
+
+  def run(p: Prop, maxSize: Int = 90,
           testCases: Int = 100,
           rng: RNG = ch6.SimpleRNG(System.currentTimeMillis())): Unit = {
     p.run(maxSize, testCases, rng) match {
@@ -58,6 +65,8 @@ object Prop {
         println(s"! Falsified after $n passed tests:\n $msg")
       case Passed =>
         println(s"+ OK, passed $testCases tests.")
+      case Proved =>
+        println(s"+ OK, proved property.")
     }
   }
 }
@@ -128,13 +137,13 @@ object MyGenX {
     choose('a'.toInt, 'z'.toInt).map(_.toChar)
   }
 
-  val atoZ : MyGen[Char] = {
+  val atoZ: MyGen[Char] = {
     val g1 = choose('a'.toInt, 'z'.toInt).map(_.toChar)
     val g2 = choose('A'.toInt, 'Z'.toInt).map(_.toChar)
     union(g1, g2)
   }
 
-  val utf8 : MyGen[Char] = {
+  val utf8: MyGen[Char] = {
     val g1 = choose('a'.toInt, 'z'.toInt).map(_.toChar)
     val g2 = choose('A'.toInt, 'Z'.toInt).map(_.toChar)
     val g3 = choose('啊'.toInt, '中'.toInt).map(_.toChar)

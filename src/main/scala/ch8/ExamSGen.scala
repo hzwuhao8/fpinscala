@@ -25,7 +25,7 @@ object ExamSGen {
 
   def checkmax() = {
     val smallGen = MyGenX.string()
-    val sGen = MyGenX.listOf( smallGen)
+    val sGen = MyGenX.listOf(smallGen)
     val maxProp = MyGenX.forAll(sGen) { ns =>
       println(ns)
       if (ns.isEmpty) {
@@ -47,8 +47,20 @@ object ExamSGen {
     }
     Prop.run(reverseProp)
   }
+
+  def checkSorted() = {
+    val smallGen = MyGenX.choose(0, 100)
+    val list = MyGenX.listOf(smallGen)
+    val prop = MyGenX.forAll(list) { ns =>
+      println(ns)
+      ns.sorted == ns.reverse.sorted
+    }
+    Prop.run(prop)
+  }
+
   def main(args: Array[String]): Unit = {
 
-    checkSample()
+    //checkSample()
+    checkSorted()
   }
 }
