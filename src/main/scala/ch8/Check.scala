@@ -18,26 +18,26 @@ case class Falsified(failure: FailedCase, successes: SuccessCount)
 
 }
 
-case class Prop(run: (TestCases, RNG) => Result) {
+case class Prop(run: (MaxSize, TestCases, RNG) => Result) {
   def &&(p: Prop): Prop = {
-    def run(a: TestCases, rng: RNG) = {
-      val r = this.run(a, rng)
+    def run(max: MaxSize, a: TestCases, rng: RNG) = {
+      val r = this.run(max, a, rng)
       if (r.isFalsified) {
         r
       } else {
-        p.run(a, rng)
+        p.run(max, a, rng)
       }
     }
     Prop(run)
   }
 
   def ||(p: Prop): Prop = {
-    def run(a: TestCases, rng: RNG) = {
-      val r = this.run(a, rng)
+    def run(max: MaxSize, a: TestCases, rng: RNG) = {
+      val r = this.run(max, a, rng)
       if (!r.isFalsified) {
         r
       } else {
-        p.run(a, rng)
+        p.run(max, a, rng)
       }
     }
     Prop(run)
@@ -48,6 +48,7 @@ object Prop {
   type FailedCase = String
   type SuccessCount = Int
   type TestCases = Int
+  type MaxSize = Int
 }
 
 case class SGen[+A](forSize: Int => MyGen[A])
@@ -79,7 +80,7 @@ case class MyGen[+A](sample: State[RNG, A]) {
     size.flatMap { ff }
   }
 
-  def unsized: SGen[A] = SGen { a: Int => this}
+  def unsized: SGen[A] = SGen { a: Int => this }
 }
 
 object MyGenX {
@@ -148,6 +149,30 @@ object MyGenX {
     MyGen(State(run))
   }
 
+  def listOf[A](g: MyGen[A]): SGen[List[A]] = {
+    def ff(i: Int) = listOfN(i, g)
+    SGen(ff)
+  }
+
+  def forAll[A](g: SGen[A])(f: A => Boolean): Prop = {
+    forAll(g.forSize)(f)
+  }
+
+  def forAll[A](g: Int => MyGen[A])(f: A => Boolean): Prop = Prop {
+    (max, n, rng) =>
+      val casesPerSize = (n + (max - 1)) / max
+      val props: ch5.Stream[Prop] = ch5.Stream.from(0).take(n min max).map {
+        i => forAll(g(i))(f)
+      }
+      val prop: Prop = props.map { p =>
+        Prop { (max1, n1, rng1) =>
+          p.run(max1, casesPerSize, rng1)
+        }
+
+      }.toList.reduce(_ && _)
+      prop.run(max, n, rng)
+  }
+
   def forAll[A](as: MyGen[A])(f: A => Boolean): Prop = {
 
     /**
@@ -162,7 +187,7 @@ object MyGenX {
       s"test case $a \n Exception ${e.getMessage}"
     }
 
-    def run(n: TestCases, rng: RNG): Result = {
+    def run(max: MaxSize, n: TestCases, rng: RNG): Result = {
       val step1: ch5.Stream[Result] =
         randomStream(as)(rng).zip(ch5.Stream.from(0)).take(n).map {
           case (a, i) => try {
