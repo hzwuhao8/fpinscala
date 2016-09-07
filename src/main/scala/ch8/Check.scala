@@ -50,7 +50,9 @@ object Prop {
   type TestCases = Int
 }
 
-case class MyGen[A](sample: State[RNG, A]) {
+case class SGen[+A](forSize: Int => MyGen[A])
+
+case class MyGen[+A](sample: State[RNG, A]) {
 
   import MyGenX._
 
@@ -77,6 +79,7 @@ case class MyGen[A](sample: State[RNG, A]) {
     size.flatMap { ff }
   }
 
+  def unsized: SGen[A] = SGen { a: Int => this}
 }
 
 object MyGenX {
@@ -135,7 +138,7 @@ object MyGenX {
     val run = (rng: RNG) => {
       val buf: Buffer[A] = Buffer[A]()
       var next = rng
-      for (i <- 0 to n) {
+      for (i <- 0 until n) {
         val (a, next1) = g.sample.run(next)
         next = next1
         buf.append(a)
@@ -177,3 +180,4 @@ object MyGenX {
     Prop(run)
   }
 }
+
