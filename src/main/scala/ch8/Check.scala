@@ -17,6 +17,28 @@ object Prop {
 
 case class MyGen[A](sample: State[RNG, A]) {
 
+  import MyGenX._
+
+  def flatMap[B](f: A => MyGen[B]): MyGen[B] = {
+    val run = (rng: RNG) => {
+      val (a, next) = sample.run(rng)
+      val (b, next2) = f(a).sample.run(next)
+      (b, next2)
+    }
+    MyGen(State(run))
+  }
+
+  def listOfN(size: MyGen[Int]): MyGen[List[A]] = {
+    def ff(i: Int): MyGen[List[A]] = {
+      MyGenX.listOfN(i, this)
+    }
+    size.flatMap { ff }
+  }
+
+}
+
+object MyGenX {
+
   def choose(start: Int, stop: Int): MyGen[Int] = {
     def f(i: Int): Int = {
       val d = stop - start
@@ -49,23 +71,6 @@ case class MyGen[A](sample: State[RNG, A]) {
     }
     MyGen(State(run))
   }
-
-  def flatMap[B](f: A => MyGen[B]): MyGen[B] = {
-    val run = (rng: RNG) => {
-      val (a, next) = sample.run(rng)
-      val (b, next2) = f(a).sample.run(next)
-      (b, next2)
-    }
-    MyGen(State(run))
-  }
-
-  def listOfN(size: MyGen[Int]): MyGen[List[A]] = {
-    def ff(i: Int): MyGen[List[A]] = {
-      listOfN(i, this)
-    }
-    size.flatMap { ff }
-  }
-
   def union[A](g1: MyGen[A], g2: MyGen[A]): MyGen[A] = {
     boolean.flatMap { x => if (x) g1 else g2 }
   }
@@ -83,12 +88,12 @@ case class MyGen[A](sample: State[RNG, A]) {
     }
   }
 
-  def listOfN(n: Int, g: MyGen[A]): MyGen[List[A]] = {
+  def listOfN[A](n: Int, g: MyGen[A]): MyGen[List[A]] = {
     val run = (rng: RNG) => {
       val buf: Buffer[A] = Buffer[A]()
       var next = rng
       for (i <- 0 to n) {
-        val (a, next1) = sample.run(next)
+        val (a, next1) = g.sample.run(next)
         next = next1
         buf.append(a)
       }
@@ -96,10 +101,6 @@ case class MyGen[A](sample: State[RNG, A]) {
     }
     MyGen(State(run))
   }
-
-}
-
-object MyGenX {
 
   def forAll[A](ag: MyGen[A])(f: A => Boolean): Prop = {
     val ff = (rng: RNG) => {
