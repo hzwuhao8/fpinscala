@@ -8,8 +8,11 @@ object ExamMath {
     val (base, ops) = tree
     ops.foldLeft(base) {
       case (left, (op, right)) => op match {
-        case "+" => left + right case "-" => left - right
-        case "*" => left * right case "/" => left / right
+        case "+" => left + right 
+        case "-" => left - right
+        case "*" => left * right 
+        case "/" => left / right
+        case "%" => left % right
       }
     }
   }
@@ -24,8 +27,9 @@ object ExamMath {
     lazy val parens: P[Int] = P("(" ~/ addSub ~ ")")
     lazy val factor: P[Int] = P(number | parens)
 
-    lazy val divMul: P[Int] = P(factor ~ (CharIn("*/").! ~/ factor).rep).map(eval)
+    lazy val divMul: P[Int] = P(factor ~ (CharIn("*/%").! ~/ factor).rep).map(eval)
     lazy val addSub: P[Int] = P(divMul ~ (CharIn("+-").! ~/ divMul).rep).map(eval)
+    
     lazy val expr: P[Int] = P(addSub ~ End)
 
     def check(str: String, num: Int) = {
@@ -51,5 +55,10 @@ object ExamMath {
     check("((1 +1* 2)+(3*4 *5))/3", 21)
     check("((1 +1* 2)+(3 * 4 *5   \t))/3", 21)
 
+     check("1%1", 0)
+     check("1+1%1", 1)
+     check("(1+1)%1", 0)
+     
+     check("abc",0)
   }
 }
