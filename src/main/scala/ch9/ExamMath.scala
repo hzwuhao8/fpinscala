@@ -15,9 +15,10 @@ object ExamMath {
   }
 
   def main(args: Array[String]) {
+    val space: P[Unit] = P(" " | "\t")
     val number1: P[Int] = P(CharIn('0' to '9').rep(1).!.map(_.toInt))
 
-    val number2: P[Int] = P(" ".rep ~ CharIn('0' to '9').rep(1) ~ " ".rep).!.map(s => s.trim().toInt)
+    val number2: P[Int] = P(space.rep ~ CharIn('0' to '9').rep(1).! ~ space.rep).map(s => s.trim().toInt)
 
     val number: P[Int] = number2
     lazy val parens: P[Int] = P("(" ~/ addSub ~ ")")
@@ -46,6 +47,9 @@ object ExamMath {
     check("63/3", 21)
     check("(1+1*2)+(3*4*5)/20", 6)
     check("((1+1*2)+(3*4*5))/3", 21)
-check("((1 +1* 2)+(3*4 *5))/3", 21)
+
+    check("((1 +1* 2)+(3*4 *5))/3", 21)
+    check("((1 +1* 2)+(3 * 4 *5   \t))/3", 21)
+
   }
 }
