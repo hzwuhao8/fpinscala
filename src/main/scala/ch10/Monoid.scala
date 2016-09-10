@@ -38,7 +38,7 @@ object Monoid {
     val zero = m.zero
   }
 
-  def add[A, B](ma: Monoid[A], mb: Monoid[B]): Monoid[(A, B)] = new Monoid[(A, B)] {
+  def productMonoid[A, B](ma: Monoid[A], mb: Monoid[B]): Monoid[(A, B)] = new Monoid[(A, B)] {
     val zero = (ma.zero, mb.zero)
     def op(x: (A, B), y: (A, B)): (A, B) = {
       val a1 = x._1
@@ -155,7 +155,7 @@ object Monoid {
 
     val bgt: Option[(Int, Int, Boolean)] = foldMapV(ints, mgt)(i => Some((i, i, true)))
     val blt: Option[(Int, Int, Boolean)] = foldMapV(ints, mlt)(i => Some((i, i, true)))
-    val orderm = add(mgt, mlt)
+    val orderm = productMonoid(mgt, mlt)
     val order = foldMapV(ints, orderm)(i => (Some((i, i, true)), Some((i, i, true))))
     val (bgt1, blt1) = order
 
