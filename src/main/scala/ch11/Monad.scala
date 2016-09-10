@@ -11,6 +11,16 @@ trait Monad[F[_]] {
 
   def map2[A, B, C](ma: F[A], mb: F[B])(f: (A, B) => C): F[C] =
     flatMap(ma)(a => map(mb)(b => f(a, b)))
+
+  def sequence[A](lma: List[F[A]]): F[List[A]] = {
+    lma.foldRight(unit(List[A]())) { (fa, b) => map2(fa, b)(_ :: _) }
+
+  }
+
+  def traverse[A, B](la: List[A])(f: A => F[B]): F[List[B]] = {
+    la.foldRight(unit(List[B]())) { (a, b) => map2(f(a), b)(_ :: _) }
+  }
+
 }
 
 object Monad {
