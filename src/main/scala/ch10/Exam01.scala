@@ -6,5 +6,7 @@ object Exam01 {
     Monoid.ordered(seq)
     Monoid.ordered( 10.to(1,-1))
     Monoid.ordered( Vector(1,5,8,2))
+    val m = Monoid.bag( Vector("a", "rose", "is", "a", "rose"))
+    println(m)
   }
 }

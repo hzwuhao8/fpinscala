@@ -124,7 +124,7 @@ object Monoid {
     val mgt = new Monoid[Option[(Int, Int, Boolean)]] {
       val zero = None
       def op(o1: Option[(Int, Int, Boolean)], o2: Option[(Int, Int, Boolean)]): Option[(Int, Int, Boolean)] = {
-        println(o1, o2)
+        //println(o1, o2)
         val res = (o1, o2) match {
           case (Some((x1, y1, p)), Some((x2, y2, q))) =>
             Some(x1 min x2, y1 max y2, p && q && x1 >= y2)
@@ -132,7 +132,7 @@ object Monoid {
           case (None, x) => x
 
         }
-        println(res)
+       // println(res)
         res
       }
     }
@@ -140,7 +140,7 @@ object Monoid {
     val mlt = new Monoid[Option[(Int, Int, Boolean)]] {
       val zero = None
       def op(o1: Option[(Int, Int, Boolean)], o2: Option[(Int, Int, Boolean)]): Option[(Int, Int, Boolean)] = {
-        println(o1, o2)
+        //println(o1, o2)
         val res = (o1, o2) match {
           case (Some((x1, y1, p)), Some((x2, y2, q))) =>
             Some(x1 min x2, y1 max y2, p && q && x1 <= y2)
@@ -148,7 +148,7 @@ object Monoid {
           case (None, x) => x
 
         }
-        println(res)
+        //println(res)
         res
       }
     }
@@ -161,8 +161,35 @@ object Monoid {
 
     val r1 = bgt.map(_._3).getOrElse(true) || blt.map(_._3).getOrElse(true)
     val r2 = bgt1.map(_._3).getOrElse(true) || blt1.map(_._3).getOrElse(true)
-    println(r1,r2)
+    println(r1, r2)
     r1
+  }
+
+  /**
+   * 合并的  结果由 V 决定， V 定义的op  决定合并的结果
+   */
+  def mapMergeMonoid[K, V](V: Monoid[V]): Monoid[Map[K, V]] = new Monoid[Map[K, V]] {
+    val zero = Map[K, V]()
+    def op(a: Map[K, V], b: Map[K, V]): Map[K, V] = {
+      val keys = a.keySet ++ b.keySet
+      keys.foldLeft(zero) { (acc, k) =>
+        val v = V.op(a.getOrElse(k, V.zero), b.getOrElse(k, V.zero))
+        acc.updated(k, v)
+      }
+    }
+  }
+
+  def functionMonoid[A, B](b: Monoid[B]): Monoid[A => B] = new Monoid[A => B] {
+    val zero = (a: A) => b.zero
+    def op(f1: A => B, f2: A => B): A => B = a => {
+      b.op(f1(a), f2(a))
+    }
+  }
+
+  def bag[A](as: IndexedSeq[A]): Map[A, Int] = {
+    val m2: Monoid[Map[A, Int]] = mapMergeMonoid(intAddition)
+    val res: Map[A, Int] = foldMapV(as, m2) { (a: A) => Map(a -> 1) }
+    res
   }
 
 }
