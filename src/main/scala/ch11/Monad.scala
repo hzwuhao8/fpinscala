@@ -101,5 +101,11 @@ object Monad {
     def flatMap[A, B](ma: Option[A])(f: A => Option[B]): Option[B] =
       ma.flatMap { f }
   }
+  def stateMonad[S] = new Monad[({ type f[x] = ch6.State[S, x] })#f] {
+    def unit[A](a: => A): ch6.State[S, A] = ch6.State(s => (a, s))
+    def flatMap[A, B](st: ch6.State[S, A])(f: A => ch6.State[S, B]): ch6.State[S, B] = {
+      st.flatMap { f }
+    }
+  }
 }
 

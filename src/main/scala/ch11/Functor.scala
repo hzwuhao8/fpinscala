@@ -18,5 +18,5 @@ object ListFunctor extends Functor[List] {
 object MyGenFunctor extends Functor[ch8.MyGen] {
   def map[A, B](fa: ch8.MyGen[A])(f: A => B): ch8.MyGen[B] = fa.map(f)
 }
-
+ 
 
