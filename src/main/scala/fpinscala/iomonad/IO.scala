@@ -114,5 +114,91 @@ object IO1 {
     })
 }
 
+object IO2a {
 
+  /*
+  The previous IO representation overflows the stack for some programs.
+  The problem is that `run` call itself recursively, which means that
+  an infinite or long running IO computation will have a chain of regular
+  calls to `run`, eventually overflowing the stack.
 
+  The general solution is to make the `IO` type into a data type that we
+  interpret using a tail recursive loop, using pattern matching.
+  */
+
+  sealed trait IO[A] {
+    def flatMap[B](f: A => IO[B]): IO[B] =
+      FlatMap(this, f) // we do not interpret the `flatMap` here, just return it as a value
+    def map[B](f: A => B): IO[B] =
+      flatMap(f andThen (Return(_)))
+  }
+  case class Return[A](a: A) extends IO[A]
+  case class Suspend[A](resume: () => A) extends IO[A]
+  case class FlatMap[A, B](sub: IO[A], k: A => IO[B]) extends IO[B]
+
+  object IO extends Monad[IO] { // Notice that none of these operations DO anything
+    def unit[A](a: => A): IO[A] = Return(a)
+    def flatMap[A, B](a: IO[A])(f: A => IO[B]): IO[B] = a flatMap f
+    def suspend[A](a: => IO[A]) =
+      Suspend(() => ()).flatMap { _ => a }
+
+  }
+
+  def printLine(s: String): IO[Unit] =
+    Suspend(() => Return(println(s)))
+
+  val p = IO.forever(printLine("Still going..."))
+
+  val actions: Stream[IO[Unit]] =
+    Stream.fill(100000)(printLine("Still going..."))
+  val composite: IO[Unit] =
+    actions.foldLeft(IO.unit(())) { (acc, a) => acc flatMap { _ => a } }
+
+  // There is only one sensible way to implement this as a
+  // tail-recursive function, the one tricky case is left-nested
+  // flatMaps, as in `((a flatMap f) flatMap g)`, which we
+  // reassociate to the right as `a flatMap (ar => f(a) flatMap g)`
+  @annotation.tailrec def run[A](io: IO[A]): A = io match {
+    case Return(a)  => a
+    case Suspend(r) => r()
+    case FlatMap(x, f) => x match {
+      case Return(a)     => run(f(a))
+      case Suspend(r)    => run(f(r()))
+      case FlatMap(y, g) => run(y flatMap (a => g(a) flatMap f))
+    }
+  }
+}
+
+object IO2b {
+  sealed trait TailRec[A] {
+    def flatMap[B](f: A => TailRec[B]): TailRec[B] =
+      FlatMap(this, f)
+    def map[B](f: A => B): TailRec[B] =
+      flatMap(f andThen (Return(_)))
+  }
+
+  case class Return[A](a: A) extends TailRec[A]
+
+  case class Suspend[A](resume: () => A) extends TailRec[A]
+
+  case class FlatMap[A, B](sub: TailRec[A], k: A => TailRec[B]) extends TailRec[B]
+
+  object TailRec extends Monad[TailRec] {
+    def unit[A](a: => A): TailRec[A] = Return(a)
+    def flatMap[A, B](a: TailRec[A])(f: A => TailRec[B]): TailRec[B] = a flatMap f
+    def suspend[A](a: => TailRec[A]) =
+      Suspend(() => ()).flatMap { _ => a }
+
+  }
+
+  @annotation.tailrec def run[A](t: TailRec[A]): A = t match {
+    case Return(a)  => a
+    case Suspend(r) => r()
+    case FlatMap(x, f) => x match {
+      case Return(a)     => run(f(a))
+      case Suspend(r)    => run(f(r()))
+      case FlatMap(y, g) => run(y flatMap (a => g(a) flatMap f))
+    }
+  }
+
+}

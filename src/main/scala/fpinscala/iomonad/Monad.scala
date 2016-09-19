@@ -37,6 +37,9 @@ trait Monad[F[_]] extends Functor[F] {
     ok <- cond(a1)
     _ <- if (ok) doWhile(a)(cond) else unit(())
   } yield ()
+
+
+
   def foldM[A, B](l: Stream[A])(z: B)(f: (B, A) => F[B]): F[B] =
     l match {
       case h #:: t => f(z, h) flatMap (z2 => foldM(t)(z2)(f))
