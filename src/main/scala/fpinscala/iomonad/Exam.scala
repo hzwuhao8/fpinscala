@@ -67,12 +67,13 @@ object IO2bTests {
    *  A => TailRec[A]
    *  这样 g 就可以 定义了
    */
-  type P = (Int, Int, Int)
+  type P = (Int, Int, Int, List[Int])
   type F[A] = Function1[A, TailRec[A]]
-  
+
   def f(p: P): TailRec[P] = {
     println(p)
-    Return((p._1 + p._2, p._1, p._2))
+    val next = p._1 + p._2
+    Return((next, p._1, p._2, next :: p._4))
   }
 
   def g[A](i: Int, f: F[A]): F[A] =
@@ -84,7 +85,7 @@ object IO2bTests {
     }
 
   def main(args: Array[String]): Unit = {
-    val gFortyTwo = g(10,f)((1, 0, 0))
+    val gFortyTwo = g(10, f)((1, 0, 0, Nil))
     println("g(42) = " + gFortyTwo)
     println("run(g(42)) = " + run(gFortyTwo))
   }
