@@ -58,23 +58,33 @@ object IO2aTests {
 
 object IO2bTests {
   import IO2b._
+  /**
+   * 用不同的f 是否可以   处理 绝大部分的递归调用？
+   * 这里的Int 是否可以看做是一个个状态?
+   * g 的定义是否可以通用？
+   * 看起来有困难。 g 依赖 f
+   * f 可以 抽象为
+   *  A => TailRec[A]
+   *  这样 g 就可以 定义了
+   */
   type P = (Int, Int, Int)
-  val f: (P) => TailRec[P] = p => {
+  type F[A] = Function1[A, TailRec[A]]
+  
+  def f(p: P): TailRec[P] = {
     println(p)
     Return((p._1 + p._2, p._1, p._2))
   }
 
-  val g: (P) => TailRec[P] =
-    List.fill(10)(f).foldLeft(f) {
-      (a: Function1[P, TailRec[P]],
-      b: Function1[P, TailRec[P]]) =>
+  def g[A](i: Int, f: F[A]): F[A] =
+    List.fill(i)(f).foldLeft(f) {
+      (a: F[A], b: F[A]) =>
         {
-          (p: P) => TailRec.suspend(a(p).flatMap(b))
+          (p: A) => TailRec.suspend(a(p).flatMap(b))
         }
     }
 
   def main(args: Array[String]): Unit = {
-    val gFortyTwo = g(1, 1, 1)
+    val gFortyTwo = g(10,f)((1, 0, 0))
     println("g(42) = " + gFortyTwo)
     println("run(g(42)) = " + run(gFortyTwo))
   }
